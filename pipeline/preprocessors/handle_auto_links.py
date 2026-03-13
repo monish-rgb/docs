@@ -86,6 +86,7 @@ def _transform_link(
     return None
 
 
+CODE_FENCE_PATTERN = re.compile(r"^\s*(`{3,}|~{3,})")
 CONDITIONAL_FENCE_PATTERN = re.compile(
     r"""
     ^                       # Start of line
@@ -189,9 +190,20 @@ def replace_autolinks(
     current_scope = default_scope
     lines = markdown.splitlines(keepends=True)
     processed_lines = []
+    in_code_block_fence = False
 
     for line_number, line in enumerate(lines, 1):
         line_stripped = line.strip()
+
+        # Skip code fence markers and content inside fenced code blocks
+        if CODE_FENCE_PATTERN.match(line_stripped):
+            in_code_block_fence = not in_code_block_fence
+            processed_lines.append(line)
+            continue
+
+        if in_code_block_fence:
+            processed_lines.append(line)
+            continue
 
         # Check if this line defines a new conditional fence scope
         fence_match = CONDITIONAL_FENCE_PATTERN.match(line_stripped)
